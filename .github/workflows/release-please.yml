@@ -21,7 +21,9 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-      # When a release is cut, build and publish @blipr/js to npm.
+      # When a release is cut, build and publish @blipr/js to npm using npm's
+      # Trusted Publisher (OIDC) — no NPM_TOKEN. Authentication and provenance
+      # come from the GitHub OIDC token (needs id-token: write, above).
       - uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
       - uses: actions/setup-node@v4
@@ -30,6 +32,10 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
           cache: npm
+      # Trusted publishing (OIDC) requires npm >= 11.5.1; Node 20 ships an older npm.
+      - name: Upgrade npm
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm install -g npm@latest
       - name: Install
         if: ${{ steps.release.outputs.release_created }}
         run: npm ci
@@ -38,6 +44,4 @@ jobs:
         run: npm run build
       - name: Publish to npm
         if: ${{ steps.release.outputs.release_created }}
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
