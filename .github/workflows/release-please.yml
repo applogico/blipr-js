@@ -1,0 +1,47 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # npm provenance
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # The applogico org disables write for the default GITHUB_TOKEN, so
+      # release-please authenticates with the RELEASE_PLEASE_TOKEN secret
+      # (a fine-grained PAT / App token with Contents + Pull requests: RW).
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      # When a release is cut, build and publish @blipr/js to npm using npm's
+      # Trusted Publisher (OIDC) — no NPM_TOKEN. Authentication and provenance
+      # come from the GitHub OIDC token (needs id-token: write, above).
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+      - uses: actions/setup-node@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      # Trusted publishing (OIDC) requires npm >= 11.5.1; Node 20 ships an older npm.
+      - name: Upgrade npm
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm install -g npm@latest
+      - name: Install
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm ci
+      - name: Build
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm run build
+      - name: Publish to npm
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm publish --access public
