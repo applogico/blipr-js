@@ -1,0 +1,52 @@
+{
+  "name": "@blipr/js",
+  "version": "0.1.0",
+  "description": "Tiny, zero-dependency client for Blipr — publish and subscribe to notifications. curl your phone.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "blipr",
+    "notifications",
+    "push",
+    "ntfy",
+    "sse",
+    "webhook",
+    "alerts"
+  ],
+  "license": "MIT",
+  "author": "Applogico",
+  "homepage": "https://blipr.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/applogico/blipr-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/applogico/blipr-js/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}
