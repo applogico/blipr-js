@@ -10,7 +10,7 @@ export type ExpectedReply = 'binary' | 'ack' | 'choice';
 export interface PublishOptions {
   /** Notification title. */
   title?: string;
-  /** 1–5, or a named level. 4–5 arrive Time-Sensitive (break through Focus/DND). */
+  /** 1–5, or a named level. 5 arrives Time-Sensitive (breaks through Focus/DND). */
   priority?: Priority;
   /** Tags / emoji shortcodes, e.g. `['rocket', 'white_check_mark']` or `"rocket,warning"`. */
   tags?: string | string[];
