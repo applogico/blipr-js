@@ -1,5 +1,10 @@
 # @blipr/js
 
+[![npm version](https://img.shields.io/npm/v/@blipr/js)](https://www.npmjs.com/package/@blipr/js)
+[![CI](https://github.com/applogico/blipr-js/actions/workflows/ci.yml/badge.svg)](https://github.com/applogico/blipr-js/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/npm/l/@blipr/js)](./LICENSE)
+[![Node](https://img.shields.io/node/v/@blipr/js)](https://nodejs.org)
+
 Tiny, zero-dependency client for [Blipr](https://apps.apple.com/us/app/blipr-notifications/id6785094245) — **publish and subscribe to notifications from anywhere.** curl your phone.
 
 - **Zero runtime dependencies.** Runs on Node ≥ 18, browsers, and edge runtimes (anywhere `fetch` streams).

@@ -45,3 +45,15 @@ jobs:
       - name: Publish to npm
         if: ${{ steps.release.outputs.release_created }}
         run: npm publish --access public
+
+      - name: Announce the release
+        if: ${{ steps.release.outputs.release_created }}
+        continue-on-error: true
+        uses: applogico/blipr-action@v1
+        with:
+          topic: blipr-releases
+          title: "@blipr/js ${{ steps.release.outputs.tag_name }} released"
+          message: "npm i @blipr/js"
+          priority: 3
+          tags: package
+          click: ${{ steps.release.outputs.html_url }}
