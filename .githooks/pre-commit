@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+# Enforce that commit signing is enabled. `main` requires verified signatures.
+#
+# NOTE: git creates the commit signature AFTER commit hooks run, and the
+# `--no-gpg-sign` flag is not visible here — so this hook can only guarantee
+# that signing is *configured on*. The pre-push hook is what actually verifies
+# a signature is present before any commit leaves your machine.
+
+if [ "$(git config --get commit.gpgsign)" != "true" ]; then
+  echo "✖ pre-commit: commit.gpgsign is not 'true' — signed commits are required." >&2
+  echo "  Fix: git config commit.gpgsign true   (and never pass --no-gpg-sign)" >&2
+  exit 1
+fi
+
+exit 0
