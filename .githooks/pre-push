@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+# Reject pushing any commit that carries no signature (no `gpgsig` header).
+#
+# This is the real guard against unsigned commits: `main` requires verified
+# signatures and would reject them at the remote anyway, but this catches them
+# earlier, locally, with a clear message. It checks for the PRESENCE of a
+# signature (SSH signatures are stored in the `gpgsig` header too) — it does not
+# validate the signature (that needs an allowed-signers file), only that the
+# commit isn't unsigned.
+#
+# stdin lines: <local ref> <local oid> <remote ref> <remote oid>
+
+is_zero() { [ -z "$1" ] || [ -z "$(printf '%s' "$1" | tr -d 0)" ]; }
+
+status=0
+while read -r local_ref local_oid remote_ref remote_oid; do
+  is_zero "$local_oid" && continue          # branch deletion — nothing to check
+
+  if is_zero "$remote_oid"; then
+    # New branch on the remote: check commits not already present on any remote.
+    commits="$(git rev-list "$local_oid" --not --remotes)"
+  else
+    commits="$(git rev-list "$remote_oid..$local_oid")"
+  fi
+
+  for c in $commits; do
+    if ! git cat-file commit "$c" 2>/dev/null | grep -q '^gpgsig'; then
+      echo "✖ pre-push: unsigned commit $c — $(git log -1 --format=%s "$c" 2>/dev/null)" >&2
+      status=1
+    fi
+  done
+done
+
+if [ "$status" -ne 0 ]; then
+  echo "  Push blocked. Sign the commit(s), e.g.:" >&2
+  echo "    git commit --amend -S --no-edit        # last commit" >&2
+  echo "    git rebase --exec 'git commit --amend -S --no-edit' <base>   # a range" >&2
+  exit 1
+fi
+
+exit 0
