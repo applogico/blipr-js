@@ -5,8 +5,12 @@ import type { NotifyMessage, SubscribeOptions } from './types';
 const MAX_BACKOFF_MS = 30_000;
 const FILTER_KEYS = ['message', 'title', 'priority', 'tags'] as const;
 
-function validateTopicList(topic: string): void {
-  for (const part of topic.split(',')) validateTopic(part.trim());
+/** Validate each entry of a comma-separated list and rebuild it from the parts. */
+function normalizeTopicList(topic: string): string {
+  return topic
+    .split(',')
+    .map((part) => validateTopic(part.trim()))
+    .join(',');
 }
 
 function streamUrl(
@@ -64,7 +68,8 @@ async function* readMessages(
 /**
  * Yield messages for a topic, reconnecting with backoff until `signal` aborts.
  * On reconnect it resumes from the last seen message id, so drops don't lose
- * messages. `topic` may be a comma-separated list.
+ * messages. `topic` may be a comma-separated list, with or without spaces
+ * around the entries.
  */
 export async function* streamMessages(
   fetchImpl: typeof fetch,
@@ -74,7 +79,9 @@ export async function* streamMessages(
   clientToken: string | undefined,
   signal: AbortSignal,
 ): AsyncGenerator<NotifyMessage> {
-  validateTopicList(topic);
+  // Everything below uses the normalised list: sending back the caller's
+  // spacing would make it part of the topic name the server matches on.
+  const topics = normalizeTopicList(topic);
 
   let since = opts.since;
   let attempt = 0;
@@ -87,8 +94,8 @@ export async function* streamMessages(
 
   while (!aborted()) {
     try {
-      const url = streamUrl(server, topic, since, opts);
-      const body = await openStream(fetchImpl, url, topic, opts, clientToken, signal);
+      const url = streamUrl(server, topics, since, opts);
+      const body = await openStream(fetchImpl, url, topics, opts, clientToken, signal);
       attempt = 0;
       opts.onOpen?.();
       yield* readMessages(body, setSince);

@@ -42,6 +42,26 @@ function sseServer(frames: string[]): Promise<number> {
   );
 }
 
+/** Record every request target, then end the stream so a poll returns. */
+function urlRecordingServer(seen: string[]): Promise<number> {
+  return start(
+    createServer((req, res) => {
+      seen.push(req.url ?? '');
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      res.end('data: {"event":"open"}\n\n');
+    }),
+  );
+}
+
+/** The request target the SDK puts on the wire for `topic`. */
+async function requestedUrl(topic: string): Promise<string> {
+  const seen: string[] = [];
+  const port = await urlRecordingServer(seen);
+  const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+  await blipr.subscribe(topic, () => {}, { poll: true }).done;
+  return seen.join('|');
+}
+
 describe('subscribe', () => {
   it('parses SSE frames, fires onOpen once, and skips control frames', async () => {
     const port = await sseServer([
@@ -115,6 +135,20 @@ describe('subscribe', () => {
     sub.close();
     await sub.done;
     expect(got).toEqual(['live']);
+  });
+
+  it('requests one topic at the plain topic path', async () => {
+    expect(await requestedUrl('deploys')).toBe('/blip/deploys/sse?poll=1');
+  });
+
+  it('requests a comma-separated list unchanged', async () => {
+    expect(await requestedUrl('ci,deploys')).toBe('/blip/ci,deploys/sse?poll=1');
+  });
+
+  it('requests a list written with spaces at the same URL as one without', async () => {
+    expect(await requestedUrl('ci, deploys ,  builds')).toBe(
+      '/blip/ci,deploys,builds/sse?poll=1',
+    );
   });
 
   it('reports the server reason when a subscribe is refused', async () => {
