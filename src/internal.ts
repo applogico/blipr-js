@@ -20,7 +20,9 @@ export function trimServer(server: string): string {
 
 /** Resolve a fetch implementation, preferring an explicit one. */
 export function getFetch(custom?: typeof fetch): typeof fetch {
-  const f = custom ?? (globalThis.fetch as typeof fetch | undefined);
+  // The DOM lib types `fetch` as always present; on older runtimes it isn't.
+  const globalFetch = (globalThis as { fetch?: typeof fetch }).fetch;
+  const f = custom ?? globalFetch;
   if (!f) {
     throw new BliprError(
       'No global fetch found. Use Node >= 18, a modern browser/edge runtime, or pass { fetch }.',
@@ -38,7 +40,10 @@ export function csv(value?: string | string[]): string | undefined {
 /** Sleep for `ms`, resolving early if the signal aborts. */
 export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
-    if (signal?.aborted) return resolve();
+    if (signal?.aborted) {
+      resolve();
+      return;
+    }
     const done = () => {
       clearTimeout(timer);
       signal?.removeEventListener('abort', done);
@@ -53,7 +58,9 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 export function mergeSignals(internal: AbortSignal, user?: AbortSignal): AbortSignal {
   if (!user) return internal;
   const ctrl = new AbortController();
-  const abort = () => ctrl.abort();
+  const abort = () => {
+    ctrl.abort();
+  };
   if (internal.aborted || user.aborted) {
     ctrl.abort();
   } else {

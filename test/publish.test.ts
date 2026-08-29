@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createServer, type Server } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
 import { BliprClient, BliprError } from '../src/index';
 
 let server: Server | undefined;
@@ -8,21 +13,27 @@ afterEach(() => {
   server = undefined;
 });
 
+function must<T>(value: T | undefined): T {
+  if (value === undefined) throw new Error('the test server captured no request');
+  return value;
+}
+
 function listen(
-  handler: (
-    req: import('node:http').IncomingMessage,
-    res: import('node:http').ServerResponse,
-    body: string,
-  ) => void,
+  handler: (req: IncomingMessage, res: ServerResponse, body: string) => void,
 ): Promise<number> {
   return new Promise((resolve) => {
-    server = createServer((req, res) => {
+    const s = createServer((req, res) => {
       let body = '';
-      req.on('data', (c) => (body += c));
-      req.on('end', () => handler(req, res, body));
+      req.on('data', (chunk: Buffer) => {
+        body += chunk.toString();
+      });
+      req.on('end', () => {
+        handler(req, res, body);
+      });
     });
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server!.address();
+    server = s;
+    s.listen(0, '127.0.0.1', () => {
+      const addr = s.address();
       resolve(typeof addr === 'object' && addr ? addr.port : 0);
     });
   });
@@ -30,9 +41,11 @@ function listen(
 
 describe('publish', () => {
   it('sends the body + X-* headers and returns the stored message', async () => {
-    let captured: { method?: string; url?: string; headers: Record<string, unknown>; body: string } | undefined;
+    let seen:
+      | { method?: string; url?: string; headers: Record<string, unknown>; body: string }
+      | undefined;
     const port = await listen((req, res, body) => {
-      captured = { method: req.method, url: req.url, headers: req.headers, body };
+      seen = { method: req.method, url: req.url, headers: req.headers, body };
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ id: 'm1', topic: 'alerts', message: body }));
     });
@@ -46,15 +59,16 @@ describe('publish', () => {
       click: 'https://x.y',
     });
 
-    expect(captured!.method).toBe('POST');
-    expect(captured!.url).toBe('/blip/alerts');
-    expect(captured!.body).toBe('hello');
-    expect(captured!.headers['x-title']).toBe('Title');
-    expect(captured!.headers['x-priority']).toBe('5');
-    expect(captured!.headers['x-tags']).toBe('a,b');
-    expect(captured!.headers['x-markdown']).toBe('true');
-    expect(captured!.headers['x-click']).toBe('https://x.y');
-    expect(captured!.headers['authorization']).toBe('Bearer ctok');
+    const captured = must(seen);
+    expect(captured.method).toBe('POST');
+    expect(captured.url).toBe('/blip/alerts');
+    expect(captured.body).toBe('hello');
+    expect(captured.headers['x-title']).toBe('Title');
+    expect(captured.headers['x-priority']).toBe('5');
+    expect(captured.headers['x-tags']).toBe('a,b');
+    expect(captured.headers['x-markdown']).toBe('true');
+    expect(captured.headers['x-click']).toBe('https://x.y');
+    expect(captured.headers['authorization']).toBe('Bearer ctok');
     expect(msg.id).toBe('m1');
   });
 

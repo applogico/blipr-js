@@ -69,7 +69,9 @@ export class BliprClient {
       }
     })();
     return {
-      close: () => controller.abort(),
+      close: () => {
+        controller.abort();
+      },
       done: done.catch(() => {}),
     };
   }
