@@ -1,5 +1,5 @@
 import { BliprError } from './errors';
-import { safeText, serverReason, sleep, validateTopic } from './internal';
+import { safeText, serverReason, sleep, topicPath, validateTopic } from './internal';
 import type { NotifyMessage, SubscribeOptions } from './types';
 
 const MAX_BACKOFF_MS = 30_000;
@@ -9,13 +9,21 @@ function validateTopicList(topic: string): void {
   for (const part of topic.split(',')) validateTopic(part.trim());
 }
 
+/** Encode a comma-separated topic list, keeping the commas as separators. */
+function topicListPath(topic: string): string {
+  return topic
+    .split(',')
+    .map((part) => topicPath(part.trim()))
+    .join(',');
+}
+
 function streamUrl(
   server: string,
   topic: string,
   since: string | undefined,
   opts: SubscribeOptions,
 ): string {
-  const url = new URL(`${server}/blip/${topic}/sse`);
+  const url = new URL(`${server}/blip/${topicListPath(topic)}/sse`);
   if (since != null) url.searchParams.set('since', since);
   if (opts.poll) url.searchParams.set('poll', '1');
   for (const key of FILTER_KEYS) {

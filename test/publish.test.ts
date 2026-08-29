@@ -87,6 +87,20 @@ describe('publish', () => {
     expect(headers['authorization']).toBe('Bearer override');
   });
 
+  it('sends a protected topic as two encoded path segments', async () => {
+    let url: string | undefined;
+    const port = await listen((req, res) => {
+      url = req.url;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ id: 'm3', topic: '@alice/tickets' }));
+    });
+
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    await blipr.publish('@alice/tickets', 'hi');
+
+    expect(url).toBe('/blip/%40alice/tickets');
+  });
+
   it('rejects an invalid topic before hitting the network', async () => {
     const blipr = new BliprClient({ server: 'http://127.0.0.1:9' });
     await expect(blipr.publish('bad/topic', 'hi')).rejects.toBeInstanceOf(BliprError);

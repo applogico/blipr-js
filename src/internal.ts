@@ -1,16 +1,49 @@
 import { BliprError } from './errors';
 
-/** Server topic rule: letters, digits, `-` and `_`, 1–64 chars. */
-const TOPIC_RE = /^[A-Za-z0-9_-]{1,64}$/;
+/** Server topic rule (`notify::domain::topic::validate_name`). */
+const LEAF_RE = /^[A-Za-z0-9_-]{1,64}$/;
+/**
+ * Server handle rule (`users::domain::handle::is_valid`): lowercase letters,
+ * digits and `_`, 3–30 chars, no leading digit. Its reserved-name list is
+ * deliberately not copied here — that is claim-time policy, and a stale copy
+ * would reject a name the server had since freed.
+ */
+const HANDLE_RE = /^[a-z_][a-z0-9_]{2,29}$/;
+const LEAF_HELP = 'use letters, digits, - and _, max 64 chars';
 
-/** Validate a single topic name against the server's rule. */
+/** Split `@handle/leaf` into its two halves; `null` for a bare public topic. */
+function protectedParts(topic: string): { handle: string; leaf: string } | null {
+  const match = /^@([^/]*)\/(.*)$/.exec(topic);
+  if (!match) return null;
+  return { handle: match[1], leaf: match[2] };
+}
+
+/**
+ * Validate a topic against the server's rule: either a bare public topic, or
+ * the protected address `@{handle}/{leaf}`.
+ */
 export function validateTopic(topic: string): string {
-  if (!TOPIC_RE.test(topic)) {
-    throw new BliprError(
-      `Invalid topic "${topic}": use letters, digits, - and _, max 64 chars.`,
-    );
+  const owned = protectedParts(topic);
+  if (owned) {
+    if (!HANDLE_RE.test(owned.handle)) {
+      throw new BliprError(
+        `Invalid handle in topic "${topic}": a handle is 3–30 lowercase letters, digits and _, not starting with a digit.`,
+      );
+    }
+    if (!LEAF_RE.test(owned.leaf)) {
+      throw new BliprError(`Invalid topic "${topic}": after the handle, ${LEAF_HELP}.`);
+    }
+    return topic;
+  }
+  if (!LEAF_RE.test(topic)) {
+    throw new BliprError(`Invalid topic "${topic}": ${LEAF_HELP}, or @handle/topic.`);
   }
   return topic;
+}
+
+/** Encode a topic for a URL path — `@handle/leaf` is two segments, not one. */
+export function topicPath(topic: string): string {
+  return topic.split('/').map(encodeURIComponent).join('/');
 }
 
 /** Strip trailing slashes from a base URL. */

@@ -1,5 +1,5 @@
 import { BliprError } from './errors';
-import { csv, safeText, serverReason, validateTopic } from './internal';
+import { csv, safeText, serverReason, topicPath, validateTopic } from './internal';
 import type { NotifyMessage, PublishOptions } from './types';
 
 function publishHeaders(
@@ -42,7 +42,7 @@ export async function publish(
     throw new BliprError('Publish needs a message or a title.');
   }
 
-  const url = `${server}/blip/${topic}`;
+  const url = `${server}/blip/${topicPath(topic)}`;
   let res: Response;
   try {
     res = await fetchImpl(url, {
