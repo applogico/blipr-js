@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/applogico/blipr-js/compare/js-v0.1.0...js-v0.1.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* say the topic must exist, and carry the server reason on a failure ([#8](https://github.com/applogico/blipr-js/issues/8)) ([334c8bd](https://github.com/applogico/blipr-js/commit/334c8bd8f4965fe4b61a752f85c909ab774edb32))
+
 ## 0.1.0 (2026-07-20)
 
 ### Features
