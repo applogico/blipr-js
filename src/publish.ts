@@ -2,23 +2,10 @@ import { BliprError } from './errors';
 import { csv, safeText, serverReason, validateTopic } from './internal';
 import type { NotifyMessage, PublishOptions } from './types';
 
-/**
- * Publish a message to a topic. Sends the message as the raw body and metadata
- * as `X-*` headers — the same contract the app and `curl` use.
- */
-export async function publish(
-  fetchImpl: typeof fetch,
-  server: string,
-  topic: string,
-  message: string,
+function publishHeaders(
   opts: PublishOptions,
   clientToken: string | undefined,
-): Promise<NotifyMessage> {
-  validateTopic(topic);
-  if ((message == null || message === '') && !opts.title) {
-    throw new BliprError('Publish needs a message or a title.');
-  }
-
+): Record<string, string> {
   const headers: Record<string, string> = {};
   const set = (key: string, value?: string) => {
     if (value != null && value !== '') headers[key] = value;
@@ -34,13 +21,33 @@ export async function publish(
   set('X-Callback', opts.callback);
   const token = opts.token ?? clientToken;
   if (token) set('Authorization', `Bearer ${token}`);
+  return headers;
+}
+
+/**
+ * Publish a message to a topic. Sends the message as the raw body and metadata
+ * as `X-*` headers — the same contract the app and `curl` use.
+ */
+export async function publish(
+  fetchImpl: typeof fetch,
+  server: string,
+  topic: string,
+  // Nullable on purpose: JavaScript callers can hand us anything.
+  message: string | null | undefined,
+  opts: PublishOptions,
+  clientToken: string | undefined,
+): Promise<NotifyMessage> {
+  validateTopic(topic);
+  if ((message == null || message === '') && !opts.title) {
+    throw new BliprError('Publish needs a message or a title.');
+  }
 
   const url = `${server}/blip/${topic}`;
   let res: Response;
   try {
     res = await fetchImpl(url, {
       method: 'POST',
-      headers,
+      headers: publishHeaders(opts, clientToken),
       body: message ?? '',
       signal: opts.signal,
     });

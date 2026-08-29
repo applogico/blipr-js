@@ -1,0 +1,9 @@
+// Lint-only project: gives the tests Node types so ESLint can type-check them.
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["."]
+}

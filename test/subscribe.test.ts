@@ -13,27 +13,33 @@ function portOf(s: Server): number {
   return typeof addr === 'object' && addr ? addr.port : 0;
 }
 
-/** Serve a fixed list of SSE frames, then end the response. */
-/** Answer every request with one status and body. */
-function refusingServer(status: number, body: string): Promise<number> {
+function start(s: Server): Promise<number> {
+  server = s;
   return new Promise((resolve) => {
-    server = createServer((_req, res) => {
-      res.writeHead(status, { 'content-type': 'application/json' });
-      res.end(body);
+    s.listen(0, '127.0.0.1', () => {
+      resolve(portOf(s));
     });
-    server.listen(0, '127.0.0.1', () => resolve(portOf(server!)));
   });
 }
 
+/** Answer every request with one status and body. */
+function refusingServer(status: number, body: string): Promise<number> {
+  return start(
+    createServer((_req, res) => {
+      res.writeHead(status, { 'content-type': 'application/json' });
+      res.end(body);
+    }),
+  );
+}
+
 function sseServer(frames: string[]): Promise<number> {
-  return new Promise((resolve) => {
-    server = createServer((_req, res) => {
+  return start(
+    createServer((_req, res) => {
       res.writeHead(200, { 'content-type': 'text/event-stream' });
       for (const f of frames) res.write(f);
       res.end();
-    });
-    server.listen(0, '127.0.0.1', () => resolve(portOf(server!)));
-  });
+    }),
+  );
 }
 
 describe('subscribe', () => {
@@ -74,16 +80,15 @@ describe('subscribe', () => {
   });
 
   it('reassembles a message split across chunks', async () => {
-    server = createServer((_req, res) => {
-      res.writeHead(200, { 'content-type': 'text/event-stream' });
-      res.write('data: {"id":"1","to');
-      setTimeout(() => {
-        res.write('pic":"t","message":"split"}\n\n');
-        res.end();
-      }, 10);
-    });
-    const port: number = await new Promise((r) =>
-      server!.listen(0, '127.0.0.1', () => r(portOf(server!))),
+    const port = await start(
+      createServer((_req, res) => {
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
+        res.write('data: {"id":"1","to');
+        setTimeout(() => {
+          res.write('pic":"t","message":"split"}\n\n');
+          res.end();
+        }, 10);
+      }),
     );
     const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
 
@@ -95,13 +100,12 @@ describe('subscribe', () => {
 
   it('close() ends a live subscription', async () => {
     // A server that stays open (never ends) so only close() stops it.
-    server = createServer((_req, res) => {
-      res.writeHead(200, { 'content-type': 'text/event-stream' });
-      res.write('data: {"id":"1","topic":"t","message":"live"}\n\n');
-      // keep the connection open
-    });
-    const port: number = await new Promise((r) =>
-      server!.listen(0, '127.0.0.1', () => r(portOf(server!))),
+    const port = await start(
+      createServer((_req, res) => {
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
+        res.write('data: {"id":"1","topic":"t","message":"live"}\n\n');
+        // keep the connection open
+      }),
     );
     const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
 
