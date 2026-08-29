@@ -1,5 +1,5 @@
 import { BliprError } from './errors';
-import { csv, validateTopic } from './internal';
+import { csv, safeText, serverReason, validateTopic } from './internal';
 import type { NotifyMessage, PublishOptions } from './types';
 
 /**
@@ -52,18 +52,12 @@ export async function publish(
 
   if (!res.ok) {
     const body = await safeText(res);
-    throw new BliprError(`Publish to "${topic}" failed (HTTP ${res.status}).`, {
+    const reason = serverReason(body);
+    const suffix = reason ? `: ${reason}` : '.';
+    throw new BliprError(`Publish to "${topic}" failed (HTTP ${res.status})${suffix}`, {
       status: res.status,
       body,
     });
   }
   return (await res.json()) as NotifyMessage;
-}
-
-async function safeText(res: Response): Promise<string> {
-  try {
-    return (await res.text()).slice(0, 500);
-  } catch {
-    return '';
-  }
 }

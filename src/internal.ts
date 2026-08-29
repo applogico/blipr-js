@@ -62,3 +62,21 @@ export function mergeSignals(internal: AbortSignal, user?: AbortSignal): AbortSi
   }
   return ctrl.signal;
 }
+
+/** The server's `error` field, when the body is JSON carrying one. */
+export function serverReason(body: string): string | undefined {
+  try {
+    const { error } = JSON.parse(body) as { error?: unknown };
+    return typeof error === 'string' && error !== '' ? error : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function safeText(res: Response): Promise<string> {
+  try {
+    return (await res.text()).slice(0, 500);
+  } catch {
+    return '';
+  }
+}
