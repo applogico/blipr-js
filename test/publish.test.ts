@@ -94,4 +94,19 @@ describe('publish', () => {
       status: 403,
     });
   });
+
+  it("puts the server's reason in the message on a 404, keeping the raw body", async () => {
+    const payload = JSON.stringify({ error: 'Topic not found', code: 'TOPIC_NOT_FOUND' });
+    const port = await listen((_req, res) => {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(payload);
+    });
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    await expect(blipr.publish('t', 'hi')).rejects.toMatchObject({
+      name: 'BliprError',
+      status: 404,
+      message: 'Publish to "t" failed (HTTP 404): Topic not found',
+      body: payload,
+    });
+  });
 });

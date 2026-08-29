@@ -1,5 +1,5 @@
 import { BliprError } from './errors';
-import { sleep, validateTopic } from './internal';
+import { safeText, serverReason, sleep, validateTopic } from './internal';
 import type { NotifyMessage, SubscribeOptions } from './types';
 
 const MAX_BACKOFF_MS = 30_000;
@@ -38,9 +38,12 @@ export async function* streamMessages(
     try {
       const res = await fetchImpl(url.toString(), { headers, signal });
       if (!res.ok || !res.body) {
-        throw new BliprError(`Subscribe to "${topic}" failed (HTTP ${res.status}).`, {
-          status: res.status,
-        });
+        const body = await safeText(res);
+        const reason = serverReason(body);
+        throw new BliprError(
+          `Subscribe to "${topic}" failed (HTTP ${res.status})${reason ? `: ${reason}` : '.'}`,
+          { status: res.status, body },
+        );
       }
       attempt = 0;
       opts.onOpen?.();

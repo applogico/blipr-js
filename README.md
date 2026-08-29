@@ -10,7 +10,7 @@ Tiny, zero-dependency client for [Blipr](https://apps.apple.com/us/app/blipr-not
 - **Zero runtime dependencies.** Runs on Node ≥ 18, browsers, and edge runtimes (anywhere `fetch` streams).
 - **Publish** with title, priority, tags, click, markdown, and the reply/ask loop.
 - **Subscribe** over SSE with auto-reconnect and resume-from-last-message.
-- **Token-ready from v1** — pass a token and it's forwarded for protected topics; a no-op until the server enforces them.
+- **Token-ready from v1** — pass a token and it's forwarded for protected topics.
 
 ## Install
 
@@ -33,6 +33,8 @@ await blipr.publish('my-alerts', 'Build finished', {
 });
 ```
 
+On blipr.dev the topic has to exist first: sign in to the Blipr app and subscribe to `my-alerts` to create it. Publishing to a name that does not exist returns 404, while a self-hosted server still creates the topic on the first publish.
+
 `publish()` resolves with the stored message (including its `id`).
 
 ## Subscribe
@@ -47,6 +49,8 @@ const sub = blipr.subscribe('my-alerts', (msg) => {
 // later
 sub.close();
 ```
+
+On blipr.dev subscribing to a topic that already exists needs no account, but subscribing to a name that does not exist returns 401 rather than creating it. Create the topic in the Blipr app first; a self-hosted server still creates it on the first subscribe.
 
 Async-iterator style:
 
@@ -78,8 +82,6 @@ await blipr.publish('deploys', 'Promoting to prod');   // authenticated
 // per-call override
 await blipr.publish('deploys', 'hi', { token: 'another-token' });
 ```
-
-Until protected topics land on the server this is simply forwarded and ignored — your code won't change when they do.
 
 ## Ask for a reply
 

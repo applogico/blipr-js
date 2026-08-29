@@ -14,6 +14,17 @@ function portOf(s: Server): number {
 }
 
 /** Serve a fixed list of SSE frames, then end the response. */
+/** Answer every request with one status and body. */
+function refusingServer(status: number, body: string): Promise<number> {
+  return new Promise((resolve) => {
+    server = createServer((_req, res) => {
+      res.writeHead(status, { 'content-type': 'application/json' });
+      res.end(body);
+    });
+    server.listen(0, '127.0.0.1', () => resolve(portOf(server!)));
+  });
+}
+
 function sseServer(frames: string[]): Promise<number> {
   return new Promise((resolve) => {
     server = createServer((_req, res) => {
@@ -100,5 +111,20 @@ describe('subscribe', () => {
     sub.close();
     await sub.done;
     expect(got).toEqual(['live']);
+  });
+
+  it('reports the server reason when a subscribe is refused', async () => {
+    const port = await refusingServer(401, '{"error":"Sign in to create a topic"}');
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+
+    let failure: unknown;
+    await blipr.subscribe('brand-new', () => {}, {
+      poll: true,
+      onError: (err) => (failure = err),
+    }).done;
+
+    expect((failure as Error).message).toBe(
+      'Subscribe to "brand-new" failed (HTTP 401): Sign in to create a topic',
+    );
   });
 });
