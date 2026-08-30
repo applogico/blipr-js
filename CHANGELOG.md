@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/applogico/blipr-js/compare/js-v0.1.1...js-v0.1.2) (2026-08-30)
+
+
+### Bug Fixes
+
+* send a comma-separated topic list without the spaces around it ([#13](https://github.com/applogico/blipr-js/issues/13)) ([58d8e57](https://github.com/applogico/blipr-js/commit/58d8e57613e369fc1ca73bcbf42d7f5d4ac6fb7b))
+
 ## [0.1.1](https://github.com/applogico/blipr-js/compare/js-v0.1.0...js-v0.1.1) (2026-08-29)
 
 
