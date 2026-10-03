@@ -13,13 +13,16 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      # The applogico org disables write for the default GITHUB_TOKEN, so
-      # release-please authenticates with the RELEASE_PLEASE_TOKEN secret
-      # (a fine-grained PAT / App token with Contents + Pull requests: RW).
+      # release-please runs as the applogico-release GitHub App so its API commits are signed.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       # When a release is cut, build and publish @blipr/js to npm using npm's
       # Trusted Publisher (OIDC) — no NPM_TOKEN. Authentication and provenance
