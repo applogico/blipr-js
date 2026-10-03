@@ -29,10 +29,10 @@ jobs:
       - uses: actions/setup-node@v4
         if: ${{ steps.release.outputs.release_created }}
         with:
-          node-version: 20
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-      # Trusted publishing (OIDC) requires npm >= 11.5.1; Node 20 ships an older npm.
+      # Trusted publishing (OIDC) requires npm >= 11.5.1; npm@latest needs Node 22.22+.
       - name: Upgrade npm
         if: ${{ steps.release.outputs.release_created }}
         run: npm install -g npm@latest
