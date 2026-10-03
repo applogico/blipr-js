@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/applogico/blipr-js/compare/js-v0.1.2...js-v0.2.0) (2026-10-03)
+
+
+### Features
+
+* accept protected @handle/topic names ([#17](https://github.com/applogico/blipr-js/issues/17)) ([8f0d466](https://github.com/applogico/blipr-js/commit/8f0d466933deb03f6f8810eb1d116cf5ed43da63))
+
 ## [0.1.2](https://github.com/applogico/blipr-js/compare/js-v0.1.1...js-v0.1.2) (2026-08-30)
 
 
