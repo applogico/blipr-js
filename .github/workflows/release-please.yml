@@ -57,3 +57,14 @@ jobs:
           priority: 3
           tags: package
           click: ${{ steps.release.outputs.html_url }}
+
+      - name: Blip when the release fails
+        if: ${{ failure() }}
+        uses: applogico/blipr-action@v1
+        with:
+          topic: blipr-releases
+          title: "@blipr/js release failed"
+          message: "The release workflow failed. Nothing reached npm."
+          priority: 4
+          tags: x
+          click: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
