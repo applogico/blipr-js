@@ -69,19 +69,24 @@ const backlog = [];
 for await (const m of blipr.messages('my-alerts', { poll: true })) backlog.push(m); // one-shot
 ```
 
-Subscribe to multiple topics at once with a comma-separated list: `blipr.subscribe('a,b,c', ...)`.
+Subscribe to multiple public topics at once with a comma-separated list: `blipr.subscribe('a,b,c', ...)`.
 
 ## Protected topics (tokens)
 
-Set a token on the client (or per call) and it's sent as `Authorization: Bearer …`:
+A protected topic is addressed as `@handle/topic` and needs a token. Set one on the client (or per call) and it's sent as `Authorization: Bearer …`:
 
 ```ts
 const blipr = new BliprClient({ token: process.env.BLIPR_TOKEN });
-await blipr.publish('deploys', 'Promoting to prod');   // authenticated
+await blipr.publish('@alice/deploys', 'Promoting to prod');   // authenticated
 
 // per-call override
-await blipr.publish('deploys', 'hi', { token: 'another-token' });
+await blipr.publish('@alice/deploys', 'hi', { token: process.env.BLIPR_OTHER_TOKEN });
+
+// subscribing works the same way, with a token that can read the topic
+blipr.subscribe('@alice/deploys', onMessage, { token: process.env.BLIPR_READ_TOKEN });
 ```
+
+The handle is 3 to 30 letters, digits and `_`, and doesn't start with a digit; the topic part follows the usual topic rules. A protected topic can't be part of a comma-separated subscribe list, so subscribe to it on its own.
 
 ## Ask for a reply
 

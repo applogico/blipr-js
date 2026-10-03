@@ -1,5 +1,5 @@
 import { BliprError } from './errors';
-import { safeText, serverReason, sleep, validateTopic } from './internal';
+import { isProtectedTopic, safeText, serverReason, sleep, validateTopic } from './internal';
 import type { NotifyMessage, SubscribeOptions } from './types';
 
 const MAX_BACKOFF_MS = 30_000;
@@ -7,10 +7,14 @@ const FILTER_KEYS = ['message', 'title', 'priority', 'tags'] as const;
 
 /** Validate each entry of a comma-separated list and rebuild it from the parts. */
 function normalizeTopicList(topic: string): string {
-  return topic
-    .split(',')
-    .map((part) => validateTopic(part.trim()))
-    .join(',');
+  const parts = topic.split(',').map((part) => validateTopic(part.trim()));
+  // The server only takes comma lists of public topics; a protected one streams alone.
+  if (parts.length > 1 && parts.some(isProtectedTopic)) {
+    throw new BliprError(
+      `Subscribe to "${topic}" failed: a protected topic can't be in a list. Subscribe to it on its own.`,
+    );
+  }
+  return parts.join(',');
 }
 
 function streamUrl(
@@ -68,8 +72,8 @@ async function* readMessages(
 /**
  * Yield messages for a topic, reconnecting with backoff until `signal` aborts.
  * On reconnect it resumes from the last seen message id, so drops don't lose
- * messages. `topic` may be a comma-separated list, with or without spaces
- * around the entries.
+ * messages. `topic` may be a comma-separated list of public topics, with or
+ * without spaces around the entries, or a single protected `@handle/topic`.
  */
 export async function* streamMessages(
   fetchImpl: typeof fetch,
