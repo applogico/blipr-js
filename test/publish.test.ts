@@ -87,6 +87,28 @@ describe('publish', () => {
     expect(headers['authorization']).toBe('Bearer override');
   });
 
+  it('posts a protected topic to /blip/@handle/topic without encoding the @ or the /', async () => {
+    let seen: { url?: string; auth?: unknown } | undefined;
+    const port = await listen((req, res) => {
+      seen = { url: req.url, auth: req.headers['authorization'] };
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ id: 'm3', topic: '@alice/home' }));
+    });
+
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    await blipr.publish('@alice/home', 'hi', { token: 'blipr_pk_x' });
+
+    const captured = must(seen);
+    expect(captured.url).toBe('/blip/@alice/home');
+    expect(captured.auth).toBe('Bearer blipr_pk_x');
+  });
+
+  it('rejects an invalid protected topic before hitting the network', async () => {
+    const blipr = new BliprClient({ server: 'http://127.0.0.1:9' });
+    await expect(blipr.publish('@alice', 'hi')).rejects.toBeInstanceOf(BliprError);
+    await expect(blipr.publish('@1alice/home', 'hi')).rejects.toBeInstanceOf(BliprError);
+  });
+
   it('rejects an invalid topic before hitting the network', async () => {
     const blipr = new BliprClient({ server: 'http://127.0.0.1:9' });
     await expect(blipr.publish('bad/topic', 'hi')).rejects.toBeInstanceOf(BliprError);

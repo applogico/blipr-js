@@ -151,6 +151,46 @@ describe('subscribe', () => {
     );
   });
 
+  it('requests a protected topic at /blip/@handle/topic/sse with the @ and / intact', async () => {
+    expect(await requestedUrl('@alice/home')).toBe('/blip/@alice/home/sse?poll=1');
+  });
+
+  it('sends the token when subscribing to a protected topic', async () => {
+    let auth: unknown;
+    const port = await start(
+      createServer((req, res) => {
+        auth = req.headers['authorization'];
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
+        res.end('data: {"event":"open"}\n\n');
+      }),
+    );
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    await blipr.subscribe('@alice/home', () => {}, { poll: true, token: 'blipr_pk_x' }).done;
+    expect(auth).toBe('Bearer blipr_pk_x');
+  });
+
+  it('refuses a protected topic inside a comma-separated list without a request', async () => {
+    const seen: string[] = [];
+    const port = await urlRecordingServer(seen);
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    const iterate = async () => {
+      for await (const _ of blipr.messages('ci,@alice/home', { poll: true })) void _;
+    };
+    await expect(iterate()).rejects.toThrow(/protected topic can't be in a list/);
+    expect(seen).toEqual([]);
+  });
+
+  it('refuses an invalid protected topic without a request', async () => {
+    const seen: string[] = [];
+    const port = await urlRecordingServer(seen);
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    const iterate = async () => {
+      for await (const _ of blipr.messages('@alice', { poll: true })) void _;
+    };
+    await expect(iterate()).rejects.toThrow(/Invalid protected topic/);
+    expect(seen).toEqual([]);
+  });
+
   it('reports the server reason when a subscribe is refused', async () => {
     const port = await refusingServer(401, '{"error":"Sign in to create a topic"}');
     const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
