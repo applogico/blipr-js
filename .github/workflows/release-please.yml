@@ -27,7 +27,7 @@ jobs:
       # When a release is cut, build and publish @blipr/js to npm using npm's
       # Trusted Publisher (OIDC) — no NPM_TOKEN. Authentication and provenance
       # come from the GitHub OIDC token (needs id-token: write, above).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ steps.release.outputs.release_created }}
       - uses: actions/setup-node@v4
         if: ${{ steps.release.outputs.release_created }}
