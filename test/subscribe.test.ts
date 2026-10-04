@@ -174,7 +174,7 @@ describe('subscribe', () => {
     const port = await urlRecordingServer(seen);
     const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
     const iterate = async () => {
-      for await (const _ of blipr.messages('ci,@alice/home', { poll: true })) void _;
+      await blipr.messages('ci,@alice/home', { poll: true })[Symbol.asyncIterator]().next();
     };
     await expect(iterate()).rejects.toThrow(/protected topic can't be in a list/);
     expect(seen).toEqual([]);
@@ -185,7 +185,7 @@ describe('subscribe', () => {
     const port = await urlRecordingServer(seen);
     const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
     const iterate = async () => {
-      for await (const _ of blipr.messages('@alice', { poll: true })) void _;
+      await blipr.messages('@alice', { poll: true })[Symbol.asyncIterator]().next();
     };
     await expect(iterate()).rejects.toThrow(/Invalid protected topic/);
     expect(seen).toEqual([]);
