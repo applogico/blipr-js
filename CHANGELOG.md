@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/applogico/blipr-js/compare/js-v0.2.0...js-v0.2.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **deps:** bump source-map-js from 1.2.1 to 1.2.2 ([#35](https://github.com/applogico/blipr-js/issues/35)) ([2da26e1](https://github.com/applogico/blipr-js/commit/2da26e1e6763fd937a3636c2bf294d46733bf5e0))
+
 ## [0.2.0](https://github.com/applogico/blipr-js/compare/js-v0.1.2...js-v0.2.0) (2026-10-03)
 
 
