@@ -3,6 +3,8 @@ name: release-please
 on:
   push:
     branches: [main]
+  # Manual run: stages the version on main without cutting a release (for a release whose publish failed).
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,25 +30,25 @@ jobs:
       # Trusted Publisher (OIDC) — no NPM_TOKEN. Authentication and provenance
       # come from the GitHub OIDC token (needs id-token: write, above).
       - uses: actions/checkout@v7
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.release_created || github.event_name == 'workflow_dispatch' }}
       - uses: actions/setup-node@v7
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.release_created || github.event_name == 'workflow_dispatch' }}
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: npm
       # Trusted publishing (OIDC) requires npm >= 11.5.1; npm@latest needs Node 22.22+.
       - name: Upgrade npm
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.release_created || github.event_name == 'workflow_dispatch' }}
         run: npm install -g npm@latest
       - name: Install
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.release_created || github.event_name == 'workflow_dispatch' }}
         run: npm ci
       - name: Build
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.release_created || github.event_name == 'workflow_dispatch' }}
         run: npm run build
       - name: Stage on npm (approve on npmjs.com to publish)
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.release_created || github.event_name == 'workflow_dispatch' }}
         run: npm stage publish --access public
 
       - name: Announce the release
