@@ -24,7 +24,7 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      # When a release is cut, build and publish @blipr/js to npm using npm's
+      # When a release is cut, build and stage @blipr/js on npm using npm's
       # Trusted Publisher (OIDC) — no NPM_TOKEN. Authentication and provenance
       # come from the GitHub OIDC token (needs id-token: write, above).
       - uses: actions/checkout@v7
@@ -45,9 +45,9 @@ jobs:
       - name: Build
         if: ${{ steps.release.outputs.release_created }}
         run: npm run build
-      - name: Publish to npm
+      - name: Stage on npm (approve on npmjs.com to publish)
         if: ${{ steps.release.outputs.release_created }}
-        run: npm publish --access public
+        run: npm stage publish --access public
 
       - name: Announce the release
         if: ${{ steps.release.outputs.release_created }}
