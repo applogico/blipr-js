@@ -19,4 +19,6 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      # tsup 9 needs Node 22.18+; the published package still targets Node 18+.
       - run: npm run build
+        if: matrix.node >= 22
