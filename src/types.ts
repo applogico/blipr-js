@@ -22,7 +22,7 @@ export interface PublishOptions {
   markdown?: boolean;
   /** Ask for a reply: `binary` | `ack` | `choice`. */
   reply?: ExpectedReply;
-  /** Choices (2–10) when `reply` is `choice`. */
+  /** Choices (2–5) when `reply` is `choice`. */
   options?: string | string[];
   /** URL the reply is POSTed to when it lands. */
   callback?: string;
