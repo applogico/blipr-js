@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/applogico/blipr-js/compare/js-v0.2.1...js-v0.2.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* document the 5-option limit for choice asks ([#46](https://github.com/applogico/blipr-js/issues/46)) ([94e2e6f](https://github.com/applogico/blipr-js/commit/94e2e6f01bf57577c755cb6b31811eb701a285e7))
+
 ## [0.2.1](https://github.com/applogico/blipr-js/compare/js-v0.2.0...js-v0.2.1) (2026-10-25)
 
 
