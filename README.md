@@ -61,13 +61,17 @@ for await (const msg of blipr.messages('my-alerts')) {
 }
 ```
 
-Catch up on history, then stream — or just poll and stop:
+Catch up on history, then stream, or just poll and stop:
 
 ```ts
 blipr.subscribe('my-alerts', onMessage, { since: '10m' });       // last 10 minutes, then live
 const backlog = [];
-for await (const m of blipr.messages('my-alerts', { poll: true })) backlog.push(m); // one-shot
+for await (const m of blipr.messages('my-alerts', { poll: true, since: 'all' })) backlog.push(m); // one-shot
 ```
+
+`since` takes `'all'`, a duration like `'10m'`, a Unix timestamp in seconds, or `'c<cursor>'` to pick up after a message you already have (every message carries a `cursor`). Without `since` you get only new messages, so a `poll` without one returns nothing.
+
+If the connection drops, the client reconnects and resumes right after the last message it received, so messages published while it was offline still arrive, and none arrive twice.
 
 Subscribe to multiple public topics at once with a comma-separated list: `blipr.subscribe('a,b,c', ...)`.
 
