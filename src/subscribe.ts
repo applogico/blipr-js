@@ -56,24 +56,56 @@ async function openStream(
   return res.body;
 }
 
+/** How many delivered message ids to remember for skipping replayed copies. */
+const SEEN_LIMIT = 1_000;
+
+/** The `since` that replays everything after `m`, or undefined if `m` carries no position. */
+function resumeFrom(m: Record<string, unknown>): string | undefined {
+  const { cursor, time } = m;
+  if (typeof cursor === 'number' && Number.isInteger(cursor)) return `c${cursor}`;
+  if (typeof cursor === 'string' && /^\d+$/.test(cursor)) return `c${cursor}`;
+  // Older servers without cursors: the time form is inclusive, so the dedupe below drops the overlap.
+  if (typeof time === 'number' && Number.isInteger(time)) return String(time);
+  return undefined;
+}
+
+/** Tracks where to resume and which messages already reached the caller. */
+class ResumePoint {
+  private readonly seen = new Set<string>();
+
+  constructor(public since: string | undefined) {}
+
+  /** Record a message; false when it was already delivered. */
+  accept(m: Record<string, unknown>): boolean {
+    const id = typeof m.id === 'string' || typeof m.id === 'number' ? String(m.id) : undefined;
+    if (id != null) {
+      if (this.seen.has(id)) return false;
+      this.seen.add(id);
+      if (this.seen.size > SEEN_LIMIT) this.seen.delete(this.seen.values().next().value as string);
+    }
+    this.since = resumeFrom(m) ?? this.since;
+    return true;
+  }
+}
+
 async function* readMessages(
   body: ReadableStream<Uint8Array>,
-  onId: (id: string) => void,
+  resume: ResumePoint,
 ): AsyncGenerator<NotifyMessage> {
   for await (const frame of parseSse(body)) {
     const event = frame.event;
     if (event === 'open' || event === 'keepalive') continue;
-    const id = frame.id;
-    if (typeof id === 'string' || typeof id === 'number') onId(String(id));
+    if (!resume.accept(frame)) continue;
     yield frame as NotifyMessage;
   }
 }
 
 /**
  * Yield messages for a topic, reconnecting with backoff until `signal` aborts.
- * On reconnect it resumes from the last seen message id, so drops don't lose
- * messages. `topic` may be a comma-separated list of public topics, with or
- * without spaces around the entries, or a single protected `@handle/topic`.
+ * On reconnect it resumes after the last received message's `cursor`, so drops
+ * don't lose messages, and skips any replayed message it already delivered.
+ * `topic` may be a comma-separated list of public topics, with or without
+ * spaces around the entries, or a single protected `@handle/topic`.
  */
 export async function* streamMessages(
   fetchImpl: typeof fetch,
@@ -87,22 +119,19 @@ export async function* streamMessages(
   // spacing would make it part of the topic name the server matches on.
   const topics = normalizeTopicList(topic);
 
-  let since = opts.since;
+  const resume = new ResumePoint(opts.since);
   let attempt = 0;
 
   // Read through a call: `signal.aborted` flips under us, so narrowing it would be wrong.
   const aborted = () => signal.aborted;
-  const setSince = (id: string) => {
-    since = id;
-  };
 
   while (!aborted()) {
     try {
-      const url = streamUrl(server, topics, since, opts);
+      const url = streamUrl(server, topics, resume.since, opts);
       const body = await openStream(fetchImpl, url, topics, opts, clientToken, signal);
       attempt = 0;
       opts.onOpen?.();
-      yield* readMessages(body, setSince);
+      yield* readMessages(body, resume);
     } catch (err) {
       if (aborted()) return;
       opts.onError?.(err);

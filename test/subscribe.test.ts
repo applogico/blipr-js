@@ -62,6 +62,104 @@ async function requestedUrl(topic: string): Promise<string> {
   return seen.join('|');
 }
 
+/** Serve the nth request the nth batch of frames and end it; later requests stay open. */
+function droppingServer(batches: string[][], seen: string[]): Promise<number> {
+  return start(
+    createServer((req, res) => {
+      const n = seen.push(req.url ?? '') - 1;
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      if (n >= batches.length) return;
+      for (const f of batches[n]) res.write(f);
+      res.end();
+    }),
+  );
+}
+
+const frame = (body: object) => `data: ${JSON.stringify(body)}\n\n`;
+const open = frame({ id: 'ctl-open', event: 'open', topic: 't', time: 1 });
+const keepalive = frame({ id: 'ctl-keep', event: 'keepalive', topic: 't', time: 2 });
+
+async function waitFor(check: () => boolean): Promise<void> {
+  for (let i = 0; i < 300 && !check(); i++) await new Promise((r) => setTimeout(r, 10));
+}
+
+/** Subscribe live until `stop` holds, returning what reached the callback. */
+async function subscribeUntil(
+  port: number,
+  stop: (got: string[]) => boolean,
+  since?: string,
+): Promise<string[]> {
+  const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+  const got: string[] = [];
+  const sub = blipr.subscribe('t', (m) => got.push(m.id), since ? { since } : {});
+  await waitFor(() => stop(got));
+  sub.close();
+  await sub.done;
+  return got;
+}
+
+describe('subscribe reconnect', () => {
+  it('resumes from the last message cursor, untouched by control frames', async () => {
+    const seen: string[] = [];
+    const port = await droppingServer(
+      [
+        [
+          open,
+          frame({ id: 'a1', event: 'message', topic: 't', time: 10, cursor: 41 }),
+          frame({ id: 'a2', event: 'message', topic: 't', time: 11, cursor: 42 }),
+          keepalive,
+        ],
+      ],
+      seen,
+    );
+    await subscribeUntil(port, () => seen.length >= 2, '10m');
+    expect(seen[1]).toBe('/blip/t/sse?since=c42');
+  });
+
+  it('does not deliver a replayed message twice', async () => {
+    const seen: string[] = [];
+    const a2 = frame({ id: 'a2', event: 'message', topic: 't', time: 11, cursor: 42 });
+    const port = await droppingServer(
+      [
+        [open, frame({ id: 'a1', event: 'message', topic: 't', time: 10, cursor: 41 }), a2],
+        [open, a2, frame({ id: 'a3', event: 'message', topic: 't', time: 12, cursor: 43 })],
+      ],
+      seen,
+    );
+    const got = await subscribeUntil(port, (g) => g.includes('a3') || seen.length >= 3);
+    expect(got).toEqual(['a1', 'a2', 'a3']);
+  });
+
+  it("keeps the caller's since when the first connection drops before any message", async () => {
+    const seen: string[] = [];
+    const port = await droppingServer([[open, keepalive]], seen);
+    await subscribeUntil(port, () => seen.length >= 2, '10m');
+    expect(seen).toEqual(['/blip/t/sse?since=10m', '/blip/t/sse?since=10m']);
+  });
+
+  it('reconnects with no since when the caller gave none and nothing arrived', async () => {
+    const seen: string[] = [];
+    const port = await droppingServer([[open]], seen);
+    await subscribeUntil(port, () => seen.length >= 2);
+    expect(seen).toEqual(['/blip/t/sse', '/blip/t/sse']);
+  });
+
+  it('falls back to the message time when a server sends no cursor', async () => {
+    const seen: string[] = [];
+    const a1 = frame({ id: 'a1', event: 'message', topic: 't', time: 1700000000 });
+    const port = await droppingServer(
+      [
+        [open, a1],
+        [open, a1, frame({ id: 'a2', event: 'message', topic: 't', time: 1700000000 })],
+      ],
+      seen,
+    );
+    const got = await subscribeUntil(port, (g) => g.includes('a2') || seen.length >= 3);
+    expect(seen[1]).toBe('/blip/t/sse?since=1700000000');
+    expect(got).toEqual(['a1', 'a2']);
+  });
+});
+
 describe('subscribe', () => {
   it('parses SSE frames, fires onOpen once, and skips control frames', async () => {
     const port = await sseServer([

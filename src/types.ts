@@ -48,6 +48,8 @@ export interface NotifyMessage {
   tags?: string[];
   /** Unix seconds the message was created. */
   time?: number;
+  /** Server position of the message; `since: "c<cursor>"` resumes after it. */
+  cursor?: number;
   /** Click-through URL. */
   click?: string;
   /** Whether the publisher was validated (protected topics). */
@@ -69,11 +71,16 @@ export interface SubscribeFilter {
 /** Options for a subscription. */
 export interface SubscribeOptions {
   /**
-   * Where to start: a message id, a Unix timestamp, `"all"`, or a duration
-   * like `"10m"`. On reconnect the client resumes from the last seen id.
+   * Where to start: `"all"`, `"c<cursor>"` (after a received message's
+   * `cursor`), a Unix timestamp in seconds, or a duration like `"10m"`.
+   * Omit it to get only new messages. On reconnect the client resumes after
+   * the last message it received.
    */
   since?: string;
-  /** One-shot: return the backlog, then close instead of streaming live. */
+  /**
+   * One-shot: return the backlog, then close instead of streaming live.
+   * Pair it with `since` (e.g. `"all"`); without one there is no backlog.
+   */
   poll?: boolean;
   /** Server-side filters. */
   filter?: SubscribeFilter;
