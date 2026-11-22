@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/applogico/blipr-js/compare/js-v0.2.2...js-v0.2.3) (2026-11-20)
+
+
+### Bug Fixes
+
+* resume subscriptions from the last cursor after a reconnect ([#50](https://github.com/applogico/blipr-js/issues/50)) ([0760ee4](https://github.com/applogico/blipr-js/commit/0760ee49cbb4d18ea6a559c74cbc95bd0d4ed28a))
+
 ## [0.2.2](https://github.com/applogico/blipr-js/compare/js-v0.2.1...js-v0.2.2) (2026-11-17)
 
 
