@@ -22,7 +22,7 @@ export interface PublishOptions {
   markdown?: boolean;
   /** Ask for a reply: `binary` | `ack` | `choice` | `text` (a typed answer, up to 120 characters). */
   reply?: ExpectedReply;
-  /** Choices (2–5) when `reply` is `choice`. Not allowed with any other `reply`. */
+  /** Choices (2–5) when `reply` is `choice`. */
   options?: string | string[];
   /** URL the reply is POSTed to when it lands. */
   callback?: string;

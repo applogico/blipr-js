@@ -113,8 +113,6 @@ await blipr.publish('deploys', 'What should the release be called?', {
 });
 ```
 
-`options` only go with `reply: 'choice'`; sending them with any other reply is rejected.
-
 Subscribers see the requested reply as `msg.expected_reply`, and the choices as `msg.options`.
 
 ## Self-hosting
