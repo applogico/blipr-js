@@ -98,6 +98,22 @@ export interface SubscribeOptions {
   onError?: (error: unknown) => void;
 }
 
+/** An answer to a question. */
+export interface Reply {
+  /** `yes` / `no`, `ack`, the chosen option, or the typed text. */
+  value: string;
+  /** When the answer was given, in Unix seconds. */
+  replied_at: number;
+}
+
+/** Options for waiting on an answer. */
+export interface WaitForReplyOptions {
+  /** Token for a protected topic. Overrides the client-level token. */
+  token?: string;
+  /** Stop waiting. */
+  signal?: AbortSignal;
+}
+
 /** A live subscription handle. */
 export interface Subscription {
   /** Stop the subscription and close the connection. */

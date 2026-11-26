@@ -1,12 +1,15 @@
 import { getFetch, mergeSignals, trimServer } from './internal';
 import { publish } from './publish';
+import { waitForReply } from './reply';
 import { streamMessages } from './subscribe';
 import type {
   BliprClientOptions,
   NotifyMessage,
   PublishOptions,
+  Reply,
   SubscribeOptions,
   Subscription,
+  WaitForReplyOptions,
 } from './types';
 
 const DEFAULT_SERVER = 'https://blipr.dev';
@@ -39,6 +42,23 @@ export class BliprClient {
     options: PublishOptions = {},
   ): Promise<NotifyMessage> {
     return publish(this.fetchImpl, this.server, topic, message, options, this.token);
+  }
+
+  /**
+   * Wait for the answer to a question, by the `id` its publish returned.
+   * Resolves with `undefined` when `options.signal` aborts first.
+   *
+   * ```ts
+   * const asked = await blipr.publish('deploys', 'Ship it?', { reply: 'binary' });
+   * const answer = await blipr.waitForReply('deploys', asked.id);
+   * ```
+   */
+  waitForReply(
+    topic: string,
+    messageId: string,
+    options: WaitForReplyOptions = {},
+  ): Promise<Reply | undefined> {
+    return waitForReply(this.fetchImpl, this.server, topic, messageId, options, this.token);
   }
 
   /**
