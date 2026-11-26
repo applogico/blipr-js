@@ -3,8 +3,8 @@ export type Priority =
   | 1 | 2 | 3 | 4 | 5
   | 'min' | 'low' | 'default' | 'high' | 'max' | 'urgent';
 
-/** Ask the recipient for a reply. Omit for a one-way alert. */
-export type ExpectedReply = 'binary' | 'ack' | 'choice';
+/** Ask the recipient for a reply. Omit for a one-way message. */
+export type ExpectedReply = 'binary' | 'ack' | 'choice' | 'text';
 
 /** Options for a single publish. */
 export interface PublishOptions {
@@ -20,7 +20,7 @@ export interface PublishOptions {
   icon?: string;
   /** Render the body as Markdown. */
   markdown?: boolean;
-  /** Ask for a reply: `binary` | `ack` | `choice`. */
+  /** Ask for a reply: `binary` | `ack` | `choice` | `text` (a typed answer, up to 120 characters). */
   reply?: ExpectedReply;
   /** Choices (2–5) when `reply` is `choice`. */
   options?: string | string[];
@@ -54,6 +54,10 @@ export interface NotifyMessage {
   click?: string;
   /** Whether the publisher was validated (protected topics). */
   verified?: boolean;
+  /** Reply the publisher asked for, if any. */
+  expected_reply?: ExpectedReply;
+  /** Choices to pick from when `expected_reply` is `choice`. */
+  options?: string[];
   /** Any other fields the server sends. */
   [key: string]: unknown;
 }
@@ -92,6 +96,22 @@ export interface SubscribeOptions {
   onOpen?: () => void;
   /** Called on a connection error before the client retries. */
   onError?: (error: unknown) => void;
+}
+
+/** An answer to a question. */
+export interface Reply {
+  /** `yes` / `no`, `ack`, the chosen option, or the typed text. */
+  value: string;
+  /** When the answer was given, in Unix seconds. */
+  replied_at: number;
+}
+
+/** Options for waiting on an answer. */
+export interface WaitForReplyOptions {
+  /** Token for a protected topic. Overrides the client-level token. */
+  token?: string;
+  /** Stop waiting. */
+  signal?: AbortSignal;
 }
 
 /** A live subscription handle. */

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
-import { BliprClient } from '../src/index';
+import { BliprClient, type ExpectedReply } from '../src/index';
 
 let server: Server | undefined;
 afterEach(() => {
@@ -233,6 +233,23 @@ describe('subscribe', () => {
     sub.close();
     await sub.done;
     expect(got).toEqual(['live']);
+  });
+
+  it('surfaces the reply kind a message asks for', async () => {
+    const port = await sseServer([
+      frame({ id: '1', topic: 't', message: 'Name it?', expected_reply: 'text' }),
+      frame({ id: '2', topic: 't', message: 'Pick', expected_reply: 'choice', options: ['A', 'B'] }),
+    ]);
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+
+    const got: { reply?: ExpectedReply; options?: string[] }[] = [];
+    for await (const m of blipr.messages('t', { poll: true })) {
+      got.push({ reply: m.expected_reply, options: m.options });
+    }
+    expect(got).toEqual([
+      { reply: 'text', options: undefined },
+      { reply: 'choice', options: ['A', 'B'] },
+    ]);
   });
 
   it('requests one topic at the plain topic path', async () => {

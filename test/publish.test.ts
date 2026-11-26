@@ -103,6 +103,44 @@ describe('publish', () => {
     expect(captured.auth).toBe('Bearer blipr_pk_x');
   });
 
+  it('asks an open question with reply: text and sends no options', async () => {
+    let headers: Record<string, unknown> = {};
+    const port = await listen((req, res) => {
+      headers = req.headers;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ id: 'm4', topic: 't', expected_reply: 'text' }));
+    });
+
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    const msg = await blipr.publish('t', 'What should it be called?', {
+      reply: 'text',
+      callback: 'https://x.y/hook',
+    });
+
+    expect(headers['x-reply']).toBe('text');
+    expect(headers['x-callback']).toBe('https://x.y/hook');
+    expect(headers['x-options']).toBeUndefined();
+    expect(msg.expected_reply).toBe('text');
+  });
+
+  it("reports the server's reason when options come with a non-choice reply", async () => {
+    let headers: Record<string, unknown> = {};
+    const port = await listen((req, res) => {
+      headers = req.headers;
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: 'options are only valid with reply: choice' }));
+    });
+
+    const blipr = new BliprClient({ server: `http://127.0.0.1:${port}` });
+    await expect(
+      blipr.publish('t', 'hi', { reply: 'text', options: ['A', 'B'] }),
+    ).rejects.toMatchObject({
+      status: 400,
+      message: 'Publish to "t" failed (HTTP 400): options are only valid with reply: choice',
+    });
+    expect(headers['x-options']).toBe('A,B');
+  });
+
   it('rejects an invalid protected topic before hitting the network', async () => {
     const blipr = new BliprClient({ server: 'http://127.0.0.1:9' });
     await expect(blipr.publish('@alice', 'hi')).rejects.toBeInstanceOf(BliprError);

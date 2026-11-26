@@ -33,7 +33,7 @@ function streamUrl(
   return url.toString();
 }
 
-async function openStream(
+export async function openStream(
   fetchImpl: typeof fetch,
   url: string,
   topic: string,
@@ -145,7 +145,7 @@ export async function* streamMessages(
 }
 
 /** Parse an SSE byte stream into JSON `data:` payloads. */
-async function* parseSse(
+export async function* parseSse(
   body: ReadableStream<Uint8Array>,
 ): AsyncGenerator<Record<string, unknown>> {
   const reader = body.getReader();

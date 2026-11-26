@@ -104,6 +104,27 @@ await blipr.publish('deploys', 'Promote to prod?', {
 
 `reply: 'binary'` gives Yes/No, `reply: 'ack'` a single Acknowledge. The first reply wins and locks the answer.
 
+Ask an open question with `reply: 'text'` and get back a typed answer of up to 120 characters:
+
+```ts
+await blipr.publish('deploys', 'What should the release be called?', {
+  reply: 'text',
+  callback: 'https://ci.example.com/blipr-hook',
+});
+```
+
+Subscribers see the requested reply as `msg.expected_reply`, and the choices as `msg.options`.
+
+Wait for the answer with `waitForReply`, passing the `id` the publish returned:
+
+```ts
+const asked = await blipr.publish('deploys', 'What should the release be called?', { reply: 'text' });
+const answer = await blipr.waitForReply('deploys', asked.id);
+// { value: 'Aurora', replied_at: 1763560042 }
+```
+
+It listens on the topic's stream, so it holds one connection and returns as soon as the answer lands. Pass `signal` to stop waiting; it then resolves with `undefined`.
+
 ## Self-hosting
 
 Point the client at your own notify server:
@@ -120,6 +141,7 @@ const blipr = new BliprClient({ server: 'https://notify.mycompany.internal' });
 | `publish(topic, message, options?)` | Publish; resolves with the message. |
 | `subscribe(topic, onMessage, options?)` | Stream messages via a callback; returns `{ close(), done }`. |
 | `messages(topic, options?)` | Async-iterable of messages. |
+| `waitForReply(topic, messageId, options?)` | Wait for the answer to a question; resolves with `{ value, replied_at }`. |
 
 `PublishOptions`: `title`, `priority`, `tags`, `click`, `icon`, `markdown`, `reply`, `options`, `callback`, `token`, `signal`.
 `SubscribeOptions`: `since`, `poll`, `filter`, `token`, `signal`, `onOpen`, `onError`.

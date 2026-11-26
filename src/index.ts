@@ -6,7 +6,9 @@ export type {
   NotifyMessage,
   Priority,
   PublishOptions,
+  Reply,
   SubscribeFilter,
   SubscribeOptions,
   Subscription,
+  WaitForReplyOptions,
 } from './types';
