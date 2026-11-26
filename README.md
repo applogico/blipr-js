@@ -104,6 +104,19 @@ await blipr.publish('deploys', 'Promote to prod?', {
 
 `reply: 'binary'` gives Yes/No, `reply: 'ack'` a single Acknowledge. The first reply wins and locks the answer.
 
+Ask an open question with `reply: 'text'` and get back a typed answer of up to 120 characters:
+
+```ts
+await blipr.publish('deploys', 'What should the release be called?', {
+  reply: 'text',
+  callback: 'https://ci.example.com/blipr-hook',
+});
+```
+
+`options` only go with `reply: 'choice'`; sending them with any other reply is rejected.
+
+Subscribers see the requested reply as `msg.expected_reply`, and the choices as `msg.options`.
+
 ## Self-hosting
 
 Point the client at your own notify server:
